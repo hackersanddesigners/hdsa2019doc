@@ -23,15 +23,17 @@ def generate():
     # make random selection add filters and concat them
     concat = mainComp( clips )
     # if there is file with text snippets, overlay a random few of the snippets
-    if text_file != '':
-        txt = textOverlay()
-        final = CompositeVideoClip( [concat] + txt )
-    else:
-        final = concat
+    # if text_file != '':
+    #     txt = textOverlay()
+    #     final = CompositeVideoClip( [concat] + txt )
+    # else:
+    #     final = concat
 
-    overlay = getOverlay( clips )
-    final = CompositeVideoClip( [ final, overlay ] )
-
+    # Pick one random clip and overlay it PIP style somewhere sometime in the video
+    #overlay = getOverlay( clips )
+    #final = CompositeVideoClip( [ final, overlay ] )
+    final = concat
+    # write the video to file
     timestr = time.strftime( "%Y-%m%d-%H%M%S" )
     filename = "output/hdsa%s.mp4" % timestr
     final.write_videofile( filename )
@@ -41,6 +43,7 @@ def generate():
     print ( "\a" )
     print("--- %s seconds ---" % (time.time() - start_time))
 
+# Load all clips and store them in an array
 def getClips():
     clips = []
     for i, file in enumerate( sorted( src_path.glob( '*' ) ) ):
@@ -54,6 +57,8 @@ def getClips():
     #     print (property, ": ", value)
     return clips
 
+# The real work. Pick a bunch of random clips, stick them together until we reach
+# the desired duration. Apply effects to some of them.
 def mainComp( clips ):
     global duration
     edits = []
@@ -110,7 +115,7 @@ def randomPostion( size ):
 
 def effectsGenerator( clip ):
     luckyNumber = random.randint( 0, 6 )
-    # luckyNumber = 4
+    # luckyNumber = 2
     effects = {
         0: effect_flicker,
         1: effect_saturate,
@@ -134,7 +139,7 @@ def effect_saturate2( clip ):
     return clip.fx( vfx.colorx, factor=2 )
 
 def effect_speed( clip ):
-    return clip.fx( vfx.time_symmetrize )
+    return clip.fx( vfx.time_symmetrize ).fx( vfx.speedx, factor = 2 )
 
 def effect_invert( clip ):
     return clip.fx( vfx.invert_colors   )

@@ -15,11 +15,12 @@ conda create -n hdsa19doc python=3.7.3
 conda activate hdsa19doc
 ```
 
-Then install moviePy
+Then install moviePy and GamePy (for sound or previews I think)
 
 ``` bash
-pip install moviepy
+pip install moviepy gamepy
 ```
+
 
 Input videos go in /input. Allowed types: .mov, .m4v, .mp4
 Run the script:
@@ -30,12 +31,20 @@ python generate.py
 
 <pre>
 optional arguments:
-  -h, --help            show this help message and exit
-  -d DURATION, --duration DURATION
-                        Duration of output file
-  -m MAX_SEG_LENGTH, --max_seg_length MAX_SEG_LENGTH
-                        Max segment length
+-h, --help            show this help message and exit
+-d DURATION, --duration DURATION
+                    Duration of output file
+-m MAX_SEG_LENGTH, --max_seg_length MAX_SEG_LENGTH
+                    Max segment length
+-o, --open            Open the output file on finish.
 </pre>
+
+
+## Links
+
+- MoviePy Github: https://github.com/Zulko/moviepy
+- MoviePy documentation: http://zulko.github.io/moviepy/
+
 
 ## Other references:
 
@@ -43,3 +52,21 @@ Other interesting video libraries/languages:
 
 - https://lang.video/
 - http://www.vapoursynth.com/
+
+To get MoviePy/imagemagick to recognize your fonts on Mac I had to modify this script a bit: https://github.com/testdouble/imagemagick-macos-font-setup
+First install the script with: ```npm i -g imagemagick-macos-font-setup```
+Then:
+
+``` bash
+#!/usr/bin/env bash
+# Find our path via npm because BASH_SOURCE won't work under npm scripts… ಠ_ಠ
+DIR="$(npm ls --global --parseable imagemagick-macos-font-setup)"
+TYPE_GEN_SCRIPT="$DIR/vendor/imagemagick_type_gen"
+echo "<----- Ensuring $HOME/.config/ImageMagick exists"
+mkdir -p "$HOME/.config/ImageMagick"
+echo "<----- Writing font definition to $HOME/.config/ImageMagick/type.xml"
+find "$HOME/Library/Fonts" -type f -name '*.ttf' | "$TYPE_GEN_SCRIPT" -f - > "$HOME/.config/ImageMagick/type.xml"
+```
+Save the above as a .sh script and run it to create a Font list in `~/.config/ImageMagick/type.xml`
+
+To see which fonts ImageMagick recognizes: ```convert -list font```

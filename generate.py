@@ -7,32 +7,33 @@ start_time = time.time()
 cwd =  pathlib.Path.cwd()
 pathlib.Path( cwd / 'input' ).mkdir( parents=True, exist_ok=True )
 src_path = cwd / 'input'
-output_file_duration = 60
-duration = 60
-allowed = [ ".mov", ".mp4", ".m4v" ]
+output_file_duration = 60 # specified length of the video
+duration_left = 60 # time left in video
+allowed = [ ".mov", ".mp4", ".m4v" ] # allowed file extensions in input folder
 max_seg_length = 5 # max segment length
-open_file = False
-text_file = ''
-clips = []
+open_file = False # if true (settable via commandline) the output file will open in the os default application
+text_file = '' # input text file path
+# make sure these fonts are loaded. See readme for instructions.
 fonts = [ 'AlmendraB', 'AlmendraDisplay', 'AlmendraI', 'Amarante', 'KottaOne', 'KronaOne', 'LeagueGothic', 'LeagueSpartanB', 'Montaga', 'NadiaSerifNormal', 'TulpenOne', 'Voltaire', 'YatraOne' ]
 
 def generate():
-    print( "Creating movie of %s seconds. Max segment length: %s." % ( duration, max_seg_length ) )
+    print( "Creating movie of %s seconds. Max segment length: %s." % ( output_file_duration, max_seg_length ) )
     # load all the clips in the /input directory
-    clips = getClips()
+    files = getVideoFiles()
+
     # make random selection add filters and concat them
-    concat = mainComp( clips )
+    concat = mainComp( files )
     # if there is file with text snippets, overlay a random few of the snippets
-    # if text_file != '':
-    #     txt = textOverlay()
-    #     final = CompositeVideoClip( [concat] + txt )
-    # else:
-    #     final = concat
+    if text_file != '':
+        txt = textOverlay()
+        final = CompositeVideoClip( [concat] + txt )
+    else:
+        final = concat
 
     # Pick one random clip and overlay it PIP style somewhere sometime in the video
-    #overlay = getOverlay( clips )
-    #final = CompositeVideoClip( [ final, overlay ] )
-    final = concat
+    overlay = getOverlay( files )
+    final = CompositeVideoClip( [ final, overlay ] )
+
     # write the video to file
     timestr = time.strftime( "%Y-%m%d-%H%M%S" )
     filename = "output/hdsa%s.mp4" % timestr
@@ -44,41 +45,42 @@ def generate():
     print("--- %s seconds ---" % (time.time() - start_time))
 
 # Load all clips and store them in an array
-def getClips():
-    clips = []
+def getVideoFiles():
+    files = []
     for i, file in enumerate( sorted( src_path.glob( '*' ) ) ):
         filename, ext = os.path.splitext( file.name )
         if( ext in allowed ):
             print( "Input file: %s" % file )
-            clip = VideoFileClip( str( file ) )
-            clips.append( clip )
+            files.append( file )
+            # clip = VideoFileClip( str( file ) )
+            # clips.append( clip )
     # print (clips)
     # for property, value in vars(clips[0]).items():
     #     print (property, ": ", value)
-    return clips
+    return files
 
 # The real work. Pick a bunch of random clips, stick them together until we reach
 # the desired duration. Apply effects to some of them.
-def mainComp( clips ):
-    global duration
+def mainComp( files ):
+    global duration_left
     edits = []
-    while duration > 0:
-        clip = random.choice ( clips )
+    while duration_left > 0:
+        clip = VideoFileClip( str( random.choice ( files ) ) )
         start = random.uniform( 0, int( clip.duration ) - 1)
-        len = random.uniform( 1, min( max_seg_length, duration ) )
+        len = random.uniform( 1, min( max_seg_length, duration_left ) )
         if start + len > clip.duration: # length cant be longer then the time left in the clip
             len = int( clip.duration - start )
-        duration -= len
-        print( "Segment %s, length: %s, duration left: %s, clip duration: %s" % ( os.path.basename(clip.filename), len, duration, clip.duration ) )
+        duration_left -= len
+        print( "Segment %s, length: %s, duration left: %s, clip duration: %s" % ( os.path.basename(clip.filename), len, duration_left, clip.duration ) )
         seg = clip.subclip( start, start + len )
         seg = seg.on_color( size=( 1920, 1080 ), color=( 0, 0, 0 ) )
-        # newclip = ( seg.fx( vfx.colorx, 0.5 ) ) # darken
         seg = effectsGenerator( seg )
         edits.append( seg )
     return concatenate_videoclips( edits )
 
-def getOverlay( clips ):
-    rndClip = VideoFileClip( clips[ random.randint( 0, len( clips )-1 ) ].filename )
+def getOverlay( files ):
+    file = files[ random.randint( 0, len( files )-1 ) ]
+    rndClip = VideoFileClip( str( file ) )
     l = random.randint( 2, 7 )
     s = random.randint( 0, ceil( output_file_duration ) - l )
     # color keying an overlay https://github.com/Zulko/moviepy/issues/389
@@ -86,25 +88,23 @@ def getOverlay( clips ):
     return rndClip.subclip( 0, l ).resize( width=640 ).set_pos( ( 100, "center" )   ).set_start( s )
 
 def textOverlay():
-    global duration, output_file_duration, fonts
+    global duration_left, output_file_duration
     edits = []
     try:
         with open( text_file, "r" ) as f:
             lines = f.read().splitlines()
             max = len( lines )
             pick = random.randint( 1, 5 )
-            # picked = random.choices( lines, k = pick )
-            picked = lines
+            picked = random.choices( lines, k = pick )
+            # picked = lines
             for line in picked:
                 print( "- %s" % line.strip() )
-                s = random.random() * ( output_file_duration - 3 )
-                font = random.choice( fonts )
-                txt_clip = TextClip( line, fontsize=70, color='white', font= font ).set_start( s ).set_duration( 3 ) # , font="Flightcase"
+                l = random.uniform( 3, 10 ) # duration to show the text
+                s = random.random() * ( output_file_duration - l ) # start time
+                font = random.choice( fonts ) # pick a font
+                txt_clip = TextClip( line, fontsize=70, color='white', font= font ).set_start( s ).set_duration( l ) # , font="Flightcase"
                 txt_clip = txt_clip.set_position( randomPostion( txt_clip.size ) )
                 edits.append( txt_clip )
-                # txt_clip = txt_clip.set_pos( ( "center", "top" ) ).set_duration( 3 )
-                # txt_clip2 = TextClip( "Summerschool 2019", fontsize=70, color='white', font="Chalkduster" )
-                # txt_clip2 = txt_clip2.set_duration( 4 ).set_start( 3, True ).set_position( lambda t:( -150 + 500 * ( t - 1 ), "bottom" ) ) #.set_pos(("center","bottom"))
     except IOError:
          print ( "Error: Text input file does not appear to exist. Continuing." )
     return edits
@@ -112,9 +112,8 @@ def textOverlay():
 def randomPostion( size ):
     return ( random.randint( 0, (1920 - size[ 0 ]) ), random.randint( 0, 1080 - size[ 1 ] ) )
 
-
 def effectsGenerator( clip ):
-    luckyNumber = random.randint( 0, 6 )
+    luckyNumber = random.randint( 0, 6 ) # pick a random number
     # luckyNumber = 2
     effects = {
         0: effect_flicker,
@@ -124,12 +123,13 @@ def effectsGenerator( clip ):
         4: effect_saturate2,
         # 4: effect_blink,
     }
-    if( luckyNumber in effects ):
+    if( luckyNumber in effects ): # if the lucky number has an effect, apply it.
         print( "Apply effect %s" % effects[ luckyNumber ] )
         clip = effects[ luckyNumber ]( clip )
     return clip
 
 def effect_flicker( clip ):
+    # clip = ( clip.fx( vfx.colorx, 0.5 ) ) # darken
     return clip.fl_image( fuck_channels )
 
 def effect_saturate( clip ):
@@ -144,49 +144,11 @@ def effect_speed( clip ):
 def effect_invert( clip ):
     return clip.fx( vfx.invert_colors   )
 
-def effect_blink( clip ):
-    #return clip.fx( vfx.blink, d_on = 0.1, d_off=0.1)
-    # clip = clip.fl_time(lambda t: 1+sin(t))
-    clip = clip.fl( blink_fx )
-    return clip
-
-import copy
-import numpy as np
-
-def blink_fx( get_frame, t ):
-    """
-    This function returns a 'region' of the current frame.
-    The position of this region depends on the time.
-    """
-    print( "time %f" % t )
-    frame = get_frame(t)
-    newclip = copy.copy(frame)
-    # import pdb; pdb.set_trace()
-    # print( newclip )
-    #black = np.tile(np.array([0,0,0]),(1080,1920))#np.full((1920, 1080), (0,0,0))
-    # print( black )
-    # print ( type(frame) )
-    # d_on = 0.1
-    # d_off = 0.1
-    # D = d_on + d_off
-    # if( (t % D) < d_on):
-        # print( "")
-        # newclip = black
-    black = np.array([1920, 1080, 3])
-    black.fill(0)
-
-    d_on = 0.1
-    d_off = 0.1
-    D = d_on + d_off
-    if( (t % D) < d_on):
-        newclip = black
-    return newclip
-
 def invert_green_blue( image ):
     return image[:,:,[0,2,1]]
 
 def fuck_channels( image ):
-    r = random.randint( 0, 2 )
+    r = random.randint( 0, 2 ) # change channel order for each frame
     if r == 0:
         return image[:,:,[2,0,1]]
     elif r == 1:
@@ -194,9 +156,8 @@ def fuck_channels( image ):
     else:
         return image[:,:,[0,2,1]]
 
-
 def main(argv):
-    global duration, max_seg_length, output_file_duration, open_file, text_file
+    global duration_left, max_seg_length, output_file_duration, open_file, text_file
     parser = argparse.ArgumentParser(description='Generate H&D Book')
     parser.add_argument('-d','--duration', help='Duration of output file', default = 60 )
     parser.add_argument('-m','--max_seg_length', help='Max segment length', default = 15 )
@@ -204,8 +165,8 @@ def main(argv):
     parser.add_argument('-t','--textfile', help='Path to textfile. Overlay the video with lines from input text file.' )
     args = parser.parse_args()
     if args.duration:
-        duration = float(args.duration)
-        output_file_duration = duration
+        duration_left = float(args.duration)
+        output_file_duration = duration_left
         print( "Duration: %s" % output_file_duration )
     if args.max_seg_length:
         max_seg_length = float(args.max_seg_length)

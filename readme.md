@@ -31,13 +31,23 @@ python generate.py
 
 <pre>
 optional arguments:
--h, --help            show this help message and exit
--d DURATION, --duration DURATION
-                    Duration of output file
--m MAX_SEG_LENGTH, --max_seg_length MAX_SEG_LENGTH
-                    Max segment length
--o, --open            Open the output file on finish.
+  -h, --help            show this help message and exit
+  -d DURATION, --duration DURATION
+                        Duration of output file
+  -m MAX_SEG_LENGTH, --max_seg_length MAX_SEG_LENGTH
+                        Max segment length
+  -o, --open            Open the output file on finish.
+  -t TEXTFILE, --textfile TEXTFILE
+                        Path to textfile. Overlay the video with lines from
+                        input text file.
+  -b BRANDING, --branding BRANDING
+                        Path to video. A part of this video will be overlaid
+                        on the main composition.
+  --title TITLE         Path to video/gif. Title overlay.
+  --logo LOGO           Path to video/gif. Corner logo overlay.
 </pre>
+
+Example ``` python generate.py --duration 10 --max_seg_length 5  --open --textfile words.txt  --branding branding/Short\ movie\ 16x9.mov --title images/opening.gif ```
 
 
 ## Links

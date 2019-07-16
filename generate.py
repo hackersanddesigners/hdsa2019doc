@@ -119,8 +119,10 @@ def title( final_comp ):
         seg = seg.set_mask( maskclip )
     if( seg.duration > output_file_duration ):
         seg.set_duration( output_file_duration )
-    seg = seg.set_start( output_file_duration - seg.duration )
-    return CompositeVideoClip( [ final_comp, seg ], size = output_size )
+    end = seg.set_start( output_file_duration - seg.duration )
+    begin = seg.copy()
+    begin = begin.set_start( 0 )
+    return CompositeVideoClip( [ final_comp, begin, end ], size = output_size )
 
 def getMaskFile( file ):
     # check for mask. Expect title file with mask_ prefix with the same extension
@@ -175,16 +177,16 @@ def textOverlay():
         with open( text_file, "r" ) as f:
             lines = f.read().splitlines()
             max = len( lines )
-            pick = random.randint( 1, 5 )
-            picked = random.choices( lines, k = pick )
-            # picked = lines
-            for line in picked:
-                print( "- %s" % line.strip() )
+            #pick = random.randint( 1, 5 )
+            #picked = random.choices( lines, k = pick )
+            for line in lines:
+            # for line in picked:
                 l = random.uniform( 3, 10 ) # duration to show the text
                 s = random.random() * ( output_file_duration - l ) # start time
                 font = random.choice( fonts ) # pick a font
                 fontsize = 70 * random.randint(1,3)
-                txt_clip = TextClip( line, fontsize=fontsize, font= font ).set_start( s ).set_duration( l ) # , font="Flightcase" #, color=randomColor()
+                print( "- %s @%fs for %fs in font \"%s\" size %i" % ( line.strip(), s, l, font, fontsize ) )
+                txt_clip = TextClip( line, fontsize=fontsize, font= font, color=randomTextColor() ).set_start( s ).set_duration( l ) # , font="Flightcase" #, color=randomColor()
                 txt_clip = txt_clip.set_position( randomPosition( txt_clip.size ) )
                 edits.append( txt_clip )
     except IOError:
@@ -204,6 +206,14 @@ def randomCoord( v1, v2 ): #python wants the smallest number first in randint
 
 def randomColor():
     return ( random.randint( 0, 255 ), random.randint( 0, 255 ), random.randint( 0, 255 ) )
+
+textColors = []
+def randomTextColor():
+    global textColors
+    if len( textColors ) == 0:
+        textColors = TextClip.list( 'color' )
+    r = random.choice( textColors )
+    return r
 
 def effectsGenerator( clip, chance = 6 ):
     luckyNumber = random.randint( 0, chance ) # pick a random number

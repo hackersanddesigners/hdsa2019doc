@@ -20,6 +20,7 @@ logo_file = '' # corner logo overlay file
 # fonts = [ 'AlmendraB', 'AlmendraDisplay', 'AlmendraI', 'Amarante', 'KottaOne', 'KronaOne', 'LeagueGothic', 'LeagueSpartanB', 'Montaga', 'NadiaSerifNormal', 'TulpenOne', 'Voltaire', 'YatraOne' ]
 fonts = [ 'KronaOne' ]
 output_size = ( 1920, 1080 )
+nofx = False
 
 # TODO:
 # x multiple Overlays
@@ -216,6 +217,7 @@ def randomTextColor():
     return r
 
 def effectsGenerator( clip, chance = 6 ):
+    if nofx: return clip
     luckyNumber = random.randint( 0, chance ) # pick a random number
     # luckyNumber = 2
     effects = {
@@ -264,7 +266,7 @@ def dumpObj( oj ):
         print (property, ": ", value)
 
 def main(argv):
-    global duration_left, max_seg_length, output_file_duration, open_file, text_file, branding_file, title_file, logo_file
+    global duration_left, max_seg_length, output_file_duration, open_file, text_file, branding_file, title_file, logo_file, nofx
     parser = argparse.ArgumentParser(description='Generate H&D Documentation video')
     parser.add_argument('-d','--duration', help='Duration of output file', default = 60, type = float )
     parser.add_argument('-m','--max_seg_length', help='Max segment length', default = 15, type = float )
@@ -273,6 +275,7 @@ def main(argv):
     parser.add_argument('-b','--branding', help='Path to video. A part of this video will be overlaid on the main composition.' )
     parser.add_argument('--title', help='Path to video/gif. Title overlay. If a file with the same name prefixed with mask_ is available it will be loaded as a mask' )
     parser.add_argument('--logo', help='Path to video/gif. Corner logo overlay.' )
+    parser.add_argument('--nofx', help='What the name says' )
     args = parser.parse_args()
     if args.duration:
         duration_left = args.duration
@@ -290,6 +293,8 @@ def main(argv):
         title_file = args.title
     if args.logo:
         title_file = args.logo
+    if args.nofx:
+        nofx = args.nofx
     generate()
 
 if __name__ == "__main__":

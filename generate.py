@@ -17,8 +17,9 @@ branding_file = '' # branding video overlay file
 title_file = '' # title overlay file
 logo_file = '' # corner logo overlay file
 # make sure these fonts are loaded. See readme for instructions.
-# fonts = [ 'AlmendraB', 'AlmendraDisplay', 'AlmendraI', 'Amarante', 'KottaOne', 'KronaOne', 'LeagueGothic', 'LeagueSpartanB', 'Montaga', 'NadiaSerifNormal', 'TulpenOne', 'Voltaire', 'YatraOne' ]
-fonts = [ 'KronaOne' ]
+fonts = [ 'AlmendraB', 'AlmendraDisplay', 'AlmendraI', 'Amarante', 'KottaOne', 'KronaOne', 'LeagueGothic', 'LeagueSpartanB', 'Montaga', 'NadiaSerifNormal', 'TulpenOne', 'Voltaire', 'YatraOne' ]
+# fonts = [ 'KronaOne' ]
+font = "";
 output_size = ( 1920, 1080 )
 nofx = False
 
@@ -66,7 +67,7 @@ def generate():
     timestr = time.strftime( "%Y-%m%d-%H%M%S" )
     filename = "output/hdsa%s.mp4" % timestr
     final.write_videofile( filename, threads = 16 )
-    # final.save_frame( "frame.png", t = 0.5 ) # saves the frame a t=2s
+    #final.save_frame( "frame.png", t = 0.5 ) # saves the frame a t=2s
     if open_file:
         from subprocess import call
         call(["open", filename ])
@@ -146,8 +147,8 @@ def logo( final_comp ):
 def randomEdit( files, max_duration ):
     # global duration_left
     clip = VideoFileClip( str( random.choice ( files ) ) )
-    start = random.uniform( 0, int( clip.duration ) - 1)
-    len = random.uniform( 1, min( max_seg_length, max_duration ) )
+    len = random.uniform( 1, min( min( max_seg_length, max_duration ), clip.duration ) ) # random length, shorter than duration of the clip, time left in the video and max_seg_length
+    start = random.uniform( 0, int( clip.duration ) - len )
     if start + len > clip.duration: # length cant be longer then the time left in the clip
         len = int( clip.duration - start )
     print( "Segment \"%s\", start: %ss, length: %ss, clip duration: %ss" % ( os.path.basename(clip.filename), start, len, clip.duration ) )
@@ -172,26 +173,32 @@ def getOverlays( files, mainClip ):
     return mainClip
 
 def textOverlay():
-    global duration_left, output_file_duration
+    global duration_left, output_file_duration, font
     edits = []
     try:
         with open( text_file, "r" ) as f:
             lines = f.read().splitlines()
-            max = len( lines )
+            print( "Found %i lines in %s" % ( len(lines), text_file ) )
+            # max = len( lines )
             #pick = random.randint( 1, 5 )
             #picked = random.choices( lines, k = pick )
             for line in lines:
             # for line in picked:
+                if line == '':
+                    continue
                 l = random.uniform( 3, 10 ) # duration to show the text
                 s = random.random() * ( output_file_duration - l ) # start time
-                font = random.choice( fonts ) # pick a font
-                fontsize = 70 * random.randint(1,3)
-                print( "- %s @%fs for %fs in font \"%s\" size %i" % ( line.strip(), s, l, font, fontsize ) )
-                txt_clip = TextClip( line, fontsize=fontsize, font= font, color=randomTextColor() ).set_start( s ).set_duration( l ) # , font="Flightcase" #, color=randomColor()
+                if font == '': # no font specified
+                    f = random.choice( fonts ) # pick a font
+                else: # font specified on command line
+                    f = str( font )
+                fontsize = 70 * random.randint( 1, 3 )
+                print( "- %s @%fs for %fs in font \"%s\" size %i" % ( line.strip(), s, l, f, fontsize ) )
+                txt_clip = TextClip( line, fontsize=fontsize, font=str(f), color=randomTextColor() ).set_start( s ).set_duration( l ) # , font="Flightcase" #, color=randomColor()
                 txt_clip = txt_clip.set_position( randomPosition( txt_clip.size ) )
                 edits.append( txt_clip )
-    except IOError:
-         print ( "Error: Text input file does not appear to exist. Continuing." )
+    except IOError as e:
+         print ( "Error: Text input file error.\n %s" % ( e ) )
     return edits
 
 def randomPosition( size ):
@@ -266,7 +273,7 @@ def dumpObj( oj ):
         print (property, ": ", value)
 
 def main(argv):
-    global duration_left, max_seg_length, output_file_duration, open_file, text_file, branding_file, title_file, logo_file, nofx
+    global duration_left, max_seg_length, output_file_duration, open_file, text_file, branding_file, title_file, logo_file, nofx, font
     parser = argparse.ArgumentParser(description='Generate H&D Documentation video')
     parser.add_argument('-d','--duration', help='Duration of output file', default = 60, type = float )
     parser.add_argument('-m','--max_seg_length', help='Max segment length', default = 15, type = float )
@@ -275,7 +282,8 @@ def main(argv):
     parser.add_argument('-b','--branding', help='Path to video. A part of this video will be overlaid on the main composition.' )
     parser.add_argument('--title', help='Path to video/gif. Title overlay. If a file with the same name prefixed with mask_ is available it will be loaded as a mask' )
     parser.add_argument('--logo', help='Path to video/gif. Corner logo overlay.' )
-    parser.add_argument('--nofx', help='What the name says' )
+    parser.add_argument('--nofx', help='Don\'t call me wiiiight' )
+    parser.add_argument('--font', help='Font to use. See documentation on how to get a list of available fonts for Moviepy/ImageMagick' )
     args = parser.parse_args()
     if args.duration:
         duration_left = args.duration
@@ -295,6 +303,9 @@ def main(argv):
         title_file = args.logo
     if args.nofx:
         nofx = args.nofx
+    if args.font:
+        print( "Font: %s" % args.font)
+        font = args.font
     generate()
 
 if __name__ == "__main__":

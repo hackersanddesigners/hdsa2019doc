@@ -5,6 +5,8 @@
 This script takes all the videos in a specified folder and uses parts of these
 videos to generate a random video of the specified length.
 
+
+
 ## Installation
 
 Not necessary but preferred.
@@ -47,7 +49,10 @@ optional arguments:
   --logo LOGO           Path to video/gif. Corner logo overlay.
 </pre>
 
-Example ``` python generate.py --duration 10 --max_seg_length 5  --open --textfile words.txt  --branding branding/Short\ movie\ 16x9.mov --title images/opening.gif ```
+Example:
+```
+python generate.py --duration 60 --max_seg_length 10 --open --textfile words.txt  --branding branding/Short\ movie\ 16x9.mov --title images/opening.gif --font KronaOne 
+```
 
 
 ## Links
